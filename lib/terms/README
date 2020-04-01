@@ -1,0 +1,7 @@
+The data is saved into a simple format called JSSL (Jeff's Simple Serialization Language)
+
+Not hard
+- Sequence starts and ends with ---
+- Each line has a key value pair
+
+Everything else is just ignored which is stupid and has to change.

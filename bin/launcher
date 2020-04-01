@@ -1,0 +1,129 @@
+#!/bin/bash 
+
+#STAGE:BEGIN
+#->BASEDIR=/lib/terms||/home/$USER/lib/terms
+#->TERMLISTS=`ls  $BASEDIR/decks/`
+#STAGE-END:BEGIN:STATE->[BASEDIR,TERMSLIST]
+#STAGE:PROCESSARGS
+#->USERSELECT=$1
+#->SELECTEXISTS=0||1
+#STAGE-ENDS:PROCESSARGS:STATE->[BASEDIR,TERMSLIST,USERSELECT,SELECTEXISTS]
+
+#STAGE:SELECTTERMS
+#-> if !$SELECTEXISTS
+#--> $USERSELECT=$( displayselect )
+#-> else
+#--> SELECTIONEXISTS=$( istermmember $USERSELECT )
+#---> if ( $SELECTIONEXISTS != 0 )
+#----> echo "Sorry terms $USERSELECT DOES NOT EXIST"
+#----> $USERSELECT=$( displayselect )
+#----> SELECTIONEXISTS=$( istermmember $USERSELECT )
+#STAGE-END:SELECTTERMS:STATE->[BASEDIR,TERMSLIST,USERSELECT,SELECTEXISTS,istermmember,displayselect]
+
+#STAGE:CLOSE
+#-> if $SELECTIONEXISTS
+#--> setuppython $USERSELECT
+#-> else
+#--> echo "no such terms... sorry" >&2
+#STAGE-END:CLOSE:STATE->[BASEDIR,TERMSLIST,USERSELECT,SELECTEXISTS,istermmember,displayselect,setuppython]
+
+#STAGE:BEGIN
+BASEDIR="/home/$USER/lib/terms"
+TERMSLIST=(`find $BASEDIR/decks -maxdepth 1 -mindepth 1 -name '*' -printf '%f\n' | tr '\n' ' '`)
+#STAGE:BEGIN<DONE>
+
+#STAGE:PROCESSARGS
+USERSELECT=$1
+SELECTIONEXISTS=1
+if [ ${#USERSELECT} != 0 ]; then
+	SELECTIONEXISTS=0
+else
+	SELECTIONEXISTS=1
+fi
+#STAGE:PROCESSARGS<DONE>
+
+#STAGE:SELECTTERMS
+
+#STAGE:SELECTTERMS
+#-> if !$SELECTEXISTS
+#--> $USERSELECT=$( displayselect )
+#-> else
+#--> SELECTIONEXISTS=$( istermmember $USERSELECT )
+#---> if ( $SELECTIONEXISTS != 0 )
+#----> echo "Sorry terms $USERSELECT DOES NOT EXIST"
+#----> $USERSELECT=$( displayselect )
+#----> SELECTIONEXISTS=$( istermmember $USERSELECT )
+#STAGE-END:SELECTTERMS:STATE->[BASEDIR,TERMSLIST,USERSELECT,SELECTEXISTS,istermmember,displayselect]
+
+#STAGE FUNCTIONS istermmember,dispayselect
+_istermmember () {
+	#returns 0 if true 1 if false
+	for dir in ${TERMSLIST[@]}
+	do
+		if [ $1 = $dir ]; then
+			return 0
+		fi
+	done
+	return 1
+}
+
+_display () {
+	#echos out directories in the termlist
+	for dir in ${TERMSLIST[@]}
+	do	
+	
+		echo "$dir"
+	done
+}
+
+_select () {
+	#echos out the term selected by the user
+	read u_input
+	echo "$u_input" 
+	
+}
+
+##STAGE CODE
+if [ $SELECTIONEXISTS != 0 ]; then
+	#STAGE TEST
+	#TEST IF DISPLAY MENU IS CALLED IN CASE NO OPTION PASSED
+	echo "SORRY TERMS $USERSELECT DOES NOT EXIST"
+	_display
+	echo "SELECT TERMS FROM OPTIONS ABOVE"
+	USERSELECT=$( _select )
+else
+	#STAGE TEST confusing because in this context exists means is in termslist
+	#TEST SELECTION IS TESTED
+	_istermmember $USERSELECT
+	SELECTIONEXISTS=$?
+	if [ $SELECTIONEXISTS != 0 ]; then
+		echo "SORRY TERMS $USERSELECT DOES NOT EXIST"
+		_display
+		echo "SELECT TERMS FROM OPTIONS ABOVE"
+		USERSELECT=$( _select )
+	fi
+fi
+
+_istermmember $USERSELECT		
+SELECTIONEXISTS=$?
+
+#STAGE:CLOSE
+#-> if $SELECTIONEXISTS
+#--> setuppython $USERSELECT
+#-> else
+#--> echo "no such terms... sorry" >&2
+#STAGE-END:CLOSE:STATE->[BASEDIR,TERMSLIST,USERSELECT,SELECTEXISTS,istermmember,displayselect,setuppython]
+
+setuppython () {
+	source $BASEDIR/cards/bin/activate
+	cd "$BASEDIR"
+	python "$BASEDIR/main.py" $1
+}
+
+if [ $SELECTIONEXISTS = 0 ]; then
+	echo "$USERSELECT"
+	setuppython $USERSELECT
+else
+	echo "no such terms... sorry"
+fi
+
